@@ -101,7 +101,7 @@ var (
 )
 
 func WriteFile(fileSize int, unit string, fileName string, filePathPre string) {
-	fmt.Printf("time before: %v\n", time.Now())
+	fmt.Printf("Time before writing file %v: %v\n", fileName, time.Now())
 
 	var cnt int64
 	switch unit {
@@ -138,7 +138,7 @@ func WriteFile(fileSize int, unit string, fileName string, filePathPre string) {
 
 	wg.Wait()
 
-	fmt.Printf("time after: %v\n", time.Now())
+	fmt.Printf("Time after writing file %v: %v\n\n", fileName, time.Now())
 	return
 }
 
