@@ -20,6 +20,7 @@ const (
 	DEFAULT_FILE_NUM                  = 1
 	DEFAULT_FILE_NAME_LENGTH          = 10
 	DEFAULT_FILE_FOLDER               = "testfiles"
+	TIME_FORMAT                       = "2006-01-02 15:04:05"
 )
 
 var (
@@ -114,7 +115,7 @@ var (
 )
 
 func WriteFile(fileSize int, unit string, fileAbsPath string) {
-	log.Printf("Time before writing file %v: %v\n", fileAbsPath, time.Now())
+	log.Printf("Time before writing file %v: %v\n", fileAbsPath, time.Now().Format(TIME_FORMAT))
 
 	var cnt int64
 	switch unit {
@@ -150,7 +151,7 @@ func WriteFile(fileSize int, unit string, fileAbsPath string) {
 
 	wg.Wait()
 
-	log.Printf("Time after writing file %v: %v\n\n", fileAbsPath, time.Now())
+	log.Printf("Time after writing file %v: %v\n\n", fileAbsPath, time.Now().Format(TIME_FORMAT))
 	return
 }
 
