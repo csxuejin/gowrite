@@ -25,7 +25,7 @@ const (
 var (
 	filePath string
 	fileNum  int
-	fileName []byte
+	fileName []byte // generate random file name with fixed length
 )
 
 func init() {
