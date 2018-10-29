@@ -6,21 +6,15 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/urfave/cli"
 )
 
-type FileUnit int64
-
 const (
-	MB                       FileUnit = 1024 * 1024
-	GB                       FileUnit = MB * 1024
-	DEFAULT_FILE_NUM                  = 1
-	DEFAULT_FILE_NAME_LENGTH          = 10
-	DEFAULT_FILE_FOLDER               = "testfiles"
-	TIME_FORMAT                       = "2006-01-02 15:04:05"
+	MB                       int64 = 1024 * 1024
+	DEFAULT_FILE_NUM               = 1
+	DEFAULT_FILE_NAME_LENGTH       = 10
+	DEFAULT_FILE_FOLDER            = "testfiles"
 )
 
 var (
@@ -78,7 +72,7 @@ func main() {
 
 		unit := string(fileSizeArgs[len(fileSizeArgs)-1])
 		sizeStr := fileSizeArgs[:len(fileSizeArgs)-1]
-		size, err := strconv.Atoi(sizeStr)
+		size, err := strconv.ParseInt(sizeStr, 10, 64)
 		if err != nil {
 			log.Fatalf("The size of file is not correct: %v\n", sizeStr)
 			return nil
@@ -95,7 +89,7 @@ func main() {
 
 		for i := 0; i < fileNum; i++ {
 			Helper.RandStringBytesMaskImpr(fileName)
-			WriteFile(size, unit, path.Join(filePath, string(fileName)))
+			Writer.WriteFile(size, unit, path.Join(filePath, string(fileName)))
 		}
 
 		return nil
@@ -107,71 +101,4 @@ func main() {
 	}
 
 	return
-}
-
-var (
-	wg        sync.WaitGroup
-	workerNum = 2
-)
-
-func WriteFile(fileSize int, unit string, fileAbsPath string) {
-	log.Printf("Time before writing file %v: %v\n", fileAbsPath, time.Now().Format(TIME_FORMAT))
-
-	var cnt int64
-	switch unit {
-	case "M":
-		cnt = int64(fileSize)
-
-	case "G":
-		cnt = int64(1024 * fileSize)
-
-	default:
-		log.Fatalf("The unit is wrong: %v\n", unit)
-		return
-	}
-
-	f, err := os.Create(fileAbsPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-	f.Truncate(cnt * int64(MB))
-
-	wg.Add(workerNum)
-	jobs := make(chan int64, 100)
-	for w := 1; w <= workerNum; w++ {
-		go worker(w, jobs, fileAbsPath)
-	}
-
-	for i := int64(0); i < cnt; i++ {
-		offset := i * int64(MB)
-		jobs <- offset
-	}
-	close(jobs)
-
-	wg.Wait()
-
-	log.Printf("Time after writing file %v: %v\n\n", fileAbsPath, time.Now().Format(TIME_FORMAT))
-	return
-}
-
-func worker(id int, jobs <-chan int64, fileAbsPath string) {
-	f, err := os.OpenFile(fileAbsPath, os.O_WRONLY, 0600)
-	if err != nil {
-		panic(err)
-	}
-
-	defer func() {
-		f.Close()
-		wg.Done()
-	}()
-
-	buf := make([]byte, int(MB))
-	for offset := range jobs {
-		Helper.RandStringBytesMaskImpr(buf)
-		if _, err := f.WriteAt(buf, offset); err != nil {
-			log.Fatalln("f.WriteAt(): %v \n", err)
-			panic(err)
-		}
-	}
 }
