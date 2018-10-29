@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"path"
 	"strconv"
@@ -31,7 +29,8 @@ var (
 )
 
 func init() {
-	filePath, err := os.Getwd()
+	var err error
+	filePath, err = os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 		panic("Error happened when get the current directory path.")
@@ -94,8 +93,8 @@ func main() {
 		}
 
 		for i := 0; i < fileNum; i++ {
-			RandStringBytesMaskImpr(fileName)
-			WriteFile(size, unit, string(fileName), filePath)
+			Helper.RandStringBytesMaskImpr(fileName)
+			WriteFile(size, unit, path.Join(filePath, string(fileName)))
 		}
 
 		return nil
@@ -105,6 +104,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return
 }
 
 var (
@@ -112,8 +113,8 @@ var (
 	workerNum = 2
 )
 
-func WriteFile(fileSize int, unit string, fileName string, filePathPre string) {
-	fmt.Printf("Time before writing file %v: %v\n", fileName, time.Now())
+func WriteFile(fileSize int, unit string, fileAbsPath string) {
+	log.Printf("Time before writing file %v: %v\n", fileAbsPath, time.Now())
 
 	var cnt int64
 	switch unit {
@@ -128,8 +129,7 @@ func WriteFile(fileSize int, unit string, fileName string, filePathPre string) {
 		return
 	}
 
-	filePath := path.Join(filePathPre, fileName)
-	f, err := os.Create(filePath)
+	f, err := os.Create(fileAbsPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -139,7 +139,7 @@ func WriteFile(fileSize int, unit string, fileName string, filePathPre string) {
 	wg.Add(workerNum)
 	jobs := make(chan int64, 100)
 	for w := 1; w <= workerNum; w++ {
-		go worker(w, jobs, filePath)
+		go worker(w, jobs, fileAbsPath)
 	}
 
 	for i := int64(0); i < cnt; i++ {
@@ -150,15 +150,16 @@ func WriteFile(fileSize int, unit string, fileName string, filePathPre string) {
 
 	wg.Wait()
 
-	fmt.Printf("Time after writing file %v: %v\n\n", fileName, time.Now())
+	log.Printf("Time after writing file %v: %v\n\n", fileAbsPath, time.Now())
 	return
 }
 
-func worker(id int, jobs <-chan int64, filePath string) {
-	f, err := os.OpenFile(filePath, os.O_WRONLY, 0600)
+func worker(id int, jobs <-chan int64, fileAbsPath string) {
+	f, err := os.OpenFile(fileAbsPath, os.O_WRONLY, 0600)
 	if err != nil {
 		panic(err)
 	}
+
 	defer func() {
 		f.Close()
 		wg.Done()
@@ -166,35 +167,10 @@ func worker(id int, jobs <-chan int64, filePath string) {
 
 	buf := make([]byte, int(MB))
 	for offset := range jobs {
-		RandStringBytesMaskImpr(buf)
+		Helper.RandStringBytesMaskImpr(buf)
 		if _, err := f.WriteAt(buf, offset); err != nil {
-			log.Fatalln("err is : ", err)
+			log.Fatalln("f.WriteAt(): %v \n", err)
 			panic(err)
 		}
 	}
-}
-
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const (
-	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
-)
-
-func RandStringBytesMaskImpr(buff []byte) {
-	n := len(buff)
-	// A rand.Int63() generates 63 random bits, enough for letterIdxMax letters!
-	for i, cache, remain := n-1, rand.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = rand.Int63(), letterIdxMax
-		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			buff[i] = letterBytes[idx]
-			i--
-		}
-		cache >>= letterIdxBits
-		remain--
-	}
-
-	return
 }
