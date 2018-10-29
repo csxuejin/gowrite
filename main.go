@@ -17,10 +17,35 @@ import (
 type FileUnit int64
 
 const (
-	MB               FileUnit = 1024 * 1024
-	GB               FileUnit = MB * 1024
-	FILE_NAME_LENGTH          = 10
+	MB                       FileUnit = 1024 * 1024
+	GB                       FileUnit = MB * 1024
+	DEFAULT_FILE_NUM                  = 1
+	DEFAULT_FILE_NAME_LENGTH          = 10
+	DEFAULT_FILE_FOLDER               = "testfiles"
 )
+
+var (
+	filePath string
+	fileNum  int
+	fileName []byte
+)
+
+func init() {
+	filePath, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+		panic("Error happened when get the current directory path.")
+	}
+
+	filePath = path.Join(filePath, DEFAULT_FILE_FOLDER)
+	if err := os.MkdirAll(filePath, 0777); err != nil {
+		log.Fatal(err)
+		panic("Error happened when create folder 'testfiles'")
+	}
+
+	fileNum = DEFAULT_FILE_NUM
+	fileName = make([]byte, DEFAULT_FILE_NAME_LENGTH)
+}
 
 func main() {
 	app := cli.NewApp()
@@ -29,19 +54,10 @@ func main() {
 	app.Version = "0.0.1"
 
 	app.Action = func(c *cli.Context) error {
-		fileNum := 1
-		fileSizeArgs := ""
-		filePath, err := os.Getwd()
-		if err != nil {
-			log.Fatal(err)
-			return nil
-		}
-
-		filePath = path.Join(filePath, "testfiles")
-		if err := os.MkdirAll(filePath, 0777); err != nil {
-			log.Fatal(err)
-			return nil
-		}
+		var (
+			err          error
+			fileSizeArgs string
+		)
 
 		switch {
 		case c.NArg() == 1:
@@ -56,7 +72,7 @@ func main() {
 			}
 
 		default:
-			fmt.Printf("Please input the file size, eg: 100M or 1G.\nYou also can specify the file path, eg: 100M /tmp. The default path is current directory.\n")
+			log.Fatal("Please input the file size, eg: 100M or 1G.")
 			return nil
 		}
 
@@ -69,18 +85,14 @@ func main() {
 		}
 
 		switch unit {
-		case "M":
-			fmt.Printf("Now create a file of %v size in %v.\n", fileSizeArgs, filePath)
-
-		case "G":
-			fmt.Printf("Now create a file of %v size in %v.\n", fileSizeArgs, filePath)
+		case "M", "G":
+			log.Printf("Now create a file of %v size in %v.\n", fileSizeArgs, filePath)
 
 		default:
-			fmt.Println("Please input the correct file size, eg: 100M or 1G")
+			log.Fatal("Please input the file size, eg: 100M or 1G.")
 			return nil
 		}
 
-		fileName := make([]byte, FILE_NAME_LENGTH)
 		for i := 0; i < fileNum; i++ {
 			RandStringBytesMaskImpr(fileName)
 			WriteFile(size, unit, string(fileName), filePath)
